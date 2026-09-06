@@ -3,6 +3,5 @@ __pycache__/
 *.pyc
 .env
 .idea/
-data/raw/*
 .ipynb_checkpoints/
 !data/raw/.gitkeep

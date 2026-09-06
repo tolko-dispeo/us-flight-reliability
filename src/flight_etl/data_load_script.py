@@ -123,20 +123,6 @@ aircraft_df = aircraft_df.rename(
 )
 
 
-delay_reasons_df = pd.DataFrame(
-    {
-        "delay_reason_id": [1, 2, 3, 4, 5],
-        "code": [
-            "CARRIER",
-            "WEATHER",
-            "NAS",
-            "SECURITY",
-            "LATE_AIRCRAFT",
-        ],
-    }
-)
-
-
 flight_columns = [
     "OP_CARRIER_AIRLINE_ID",
     "TAIL_NUM",
@@ -368,61 +354,42 @@ def copy_dataframe(cur, dataframe, table_name):
     with cur.copy(copy_query) as copy:
         copy.write(buffer.getvalue())
 
-
 load_dotenv()
 
-with psycopg.connect(
+conn = psycopg.connect(
     dbname=os.getenv("POSTGRES_DB"),
     user=os.getenv("POSTGRES_USER"),
     password=os.getenv("POSTGRES_PASSWORD"),
     host="127.0.0.1",
     port=int(os.getenv("POSTGRES_PORT")),
-) as conn:
+)
+
+try:
     with conn.cursor() as cur:
-        cur.execute("TRUNCATE TABLE airline CASCADE;")
+        cur.execute("""
+            TRUNCATE TABLE
+                flight_delay,
+                flight,
+                delay_reason,
+                aircraft,
+                airport,
+                airline;
+        """)
 
-        copy_dataframe(
-            cur,
-            airlines_df,
-            "airline"
-        )
+        copy_dataframe(cur, airlines_df, "airline")
+        copy_dataframe(cur, airports_df, "airport")
+        copy_dataframe(cur, aircraft_df, "aircraft")
 
-        cur.execute("TRUNCATE TABLE airport CASCADE;")
+        cur.execute("CALL initialize_delay_reasons();")
 
-        copy_dataframe(
-            cur,
-            airports_df,
-            "airport"
-        )
+        copy_dataframe(cur, flights_df, "flight")
+        copy_dataframe(cur, flight_delay_df, "flight_delay")
 
-        cur.execute("TRUNCATE TABLE aircraft CASCADE;")
+    conn.commit()
 
-        copy_dataframe(
-            cur,
-            aircraft_df,
-            "aircraft"
-        )
+except Exception:
+    conn.rollback()
+    raise
 
-        cur.execute("TRUNCATE TABLE delay_reason CASCADE;")
-
-        copy_dataframe(
-            cur,
-            delay_reasons_df,
-            "delay_reason"
-        )
-
-        cur.execute("TRUNCATE TABLE flight CASCADE;")
-
-        copy_dataframe(
-            cur,
-            flights_df,
-            "flight"
-        )
-
-        cur.execute("TRUNCATE TABLE flight_delay;")
-
-        copy_dataframe(
-            cur,
-            flight_delay_df,
-            "flight_delay"
-        )
+finally:
+    conn.close()

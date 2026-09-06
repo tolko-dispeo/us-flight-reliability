@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: flight_postgres
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/ddl:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  postgres_data:

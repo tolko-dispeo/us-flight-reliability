@@ -8,7 +8,6 @@
 - Python
 - PostgreSQL
 - Docker
-- Apache Superset
 - GitLab CI
 - Git
 
